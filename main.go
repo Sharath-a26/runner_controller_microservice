@@ -24,6 +24,9 @@ var (
 )
 
 func main() {
+
+	logger, err := util.InitLogger(os.Getenv("ENV"))
+	util.SharedLogger = logger
 	PORT = fmt.Sprintf(":%s", os.Getenv("HTTP_PORT"))
 	if PORT == ":" {
 		PORT = ":5002"
@@ -33,11 +36,10 @@ func main() {
 		FRONTEND_URL = "http://localhost:3000"
 	}
 
-	var logger = util.NewLogger()
-
 	redisClient, err := sse.GetRedisClient(*logger)
+
 	if err != nil {
-		logger.Error(fmt.Sprintf("Failed to initialize Redis client: %v. Exiting.", err))
+		logger.Error(fmt.Sprintf("Failed to initialize Redis client: %v. Exiting.", err), err)
 		os.Exit(1)
 	}
 	logger.Info("Redis client initialized successfully.")
@@ -88,7 +90,7 @@ func main() {
 	go func() {
 		logger.Info(fmt.Sprintf("HTTP server starting on %s (Allowed Frontend Origin: %s)", server.Addr, FRONTEND_URL))
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logger.Error(fmt.Sprintf("HTTP server ListenAndServe error: %v", err))
+			logger.Error(fmt.Sprintf("HTTP server ListenAndServe error: %v", err), err)
 			stop()
 		}
 	}()
@@ -104,7 +106,7 @@ func main() {
 
 	// Attempt to gracefully shut down the HTTP server.
 	if err := server.Shutdown(shutdownCtx); err != nil {
-		logger.Error(fmt.Sprintf("HTTP server graceful shutdown failed: %v", err))
+		logger.Error(fmt.Sprintf("HTTP server graceful shutdown failed: %v", err), err)
 	} else {
 		logger.Info("HTTP server shutdown complete.")
 	}
@@ -112,7 +114,7 @@ func main() {
 	// Close Redis Client.
 	logger.Info("Shutting down Redis client...")
 	if redisErr := redisClient.Close(); redisErr != nil {
-		logger.Error(fmt.Sprintf("Redis client shutdown error: %v", redisErr))
+		logger.Error(fmt.Sprintf("Redis client shutdown error: %v", redisErr), redisErr)
 	} else {
 		logger.Info("Redis client shutdown complete.")
 	}

@@ -9,7 +9,7 @@ import (
 )
 
 func UploadFile(ctx context.Context, runID string, fileName string, extension string) error {
-	var logger = NewLogger()
+	var logger = SharedLogger
 
 	endpoint := os.Getenv("MINIO_ENDPOINT")
 	accessKeyID := os.Getenv("MINIO_ACCESS_KEY_ID")
@@ -22,7 +22,7 @@ func UploadFile(ctx context.Context, runID string, fileName string, extension st
 		Secure: false,
 	})
 	if err != nil {
-		logger.Error(fmt.Sprintf("Failed to create minio client: %v", err))
+		logger.Error(fmt.Sprintf("Failed to create minio client: %v", err), err)
 		return err
 	}
 
@@ -34,7 +34,7 @@ func UploadFile(ctx context.Context, runID string, fileName string, extension st
 		if errBucketExists == nil && exists {
 			logger.Info(fmt.Sprintf("We already own bucket: %s\n", bucketName))
 		} else {
-			logger.Error(fmt.Sprintf("Failed to create bucket %s: %v", bucketName, err))
+			logger.Error(fmt.Sprintf("Failed to create bucket %s: %v", bucketName, err), err)
 			return err
 		}
 	} else {
@@ -45,7 +45,7 @@ func UploadFile(ctx context.Context, runID string, fileName string, extension st
 	policy := `{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"AWS":["*"]},"Action":["s3:GetObject"],"Resource":["arn:aws:s3:::` + bucketName + `/*"]},{"Effect":"Allow","Principal":{"AWS":["*"]},"Action":["s3:GetBucketLocation"],"Resource":["arn:aws:s3:::` + bucketName + `"]}]}`
 	err = minioClient.SetBucketPolicy(ctx, bucketName, policy)
 	if err != nil {
-		logger.Error(fmt.Sprintf("Failed to set bucket policy: %v", err))
+		logger.Error(fmt.Sprintf("Failed to set bucket policy: %v", err), err)
 		return err
 	}
 	logger.Info(fmt.Sprintf("Successfully set bucket policy for %s\n", bucketName))
@@ -55,7 +55,7 @@ func UploadFile(ctx context.Context, runID string, fileName string, extension st
 	filePath := fmt.Sprintf("%s/%s.%s", fileName, runID, extension)
 	info, err := minioClient.FPutObject(ctx, bucketName, objectName, filePath, minio.PutObjectOptions{})
 	if err != nil {
-		logger.Error(fmt.Sprintf("Failed to upload %s: %v", filePath, err))
+		logger.Error(fmt.Sprintf("Failed to upload %s: %v", filePath, err), err)
 		return err
 	}
 

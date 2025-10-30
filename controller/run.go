@@ -8,8 +8,8 @@ import (
 )
 
 func UserRun(res http.ResponseWriter, req *http.Request) {
-	var logger = util.NewLogger()
-	logger.Info("UserRuns API called.")
+	var logger = util.SharedLogger
+	logger.InfoCtx(req, "UserRuns API called.")
 
 	user, err := modules.Auth(req)
 	if err != nil {
@@ -18,7 +18,7 @@ func UserRun(res http.ResponseWriter, req *http.Request) {
 	}
 
 	// User has id, role, userName, email & fullName.
-	logger.Info(fmt.Sprintf("User: %s", user))
+	logger.InfoCtx(req, fmt.Sprintf("User: %s", user))
 
 	data, err := util.Body(req)
 	if err != nil {
@@ -32,7 +32,7 @@ func UserRun(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	logger.Info(fmt.Sprintf("Run: %s", run.RunID))
+	logger.InfoCtx(req, fmt.Sprintf("Run: %s", run.RunID))
 
 	runData, err := run.UserRun(req.Context(), user["id"], logger)
 	if err != nil {
@@ -44,8 +44,8 @@ func UserRun(res http.ResponseWriter, req *http.Request) {
 }
 
 func UserRuns(res http.ResponseWriter, req *http.Request) {
-	var logger = util.NewLogger()
-	logger.Info("UserRuns API called.")
+	var logger = util.SharedLogger
+	logger.InfoCtx(req, "UserRuns API called.")
 
 	user, err := modules.Auth(req)
 	if err != nil {
@@ -54,7 +54,7 @@ func UserRuns(res http.ResponseWriter, req *http.Request) {
 	}
 
 	// User has id, role, userName, email & fullName.
-	logger.Info(fmt.Sprintf("User: %s", user))
+	logger.InfoCtx(req, fmt.Sprintf("User: %s", user))
 
 	runs, err := modules.UserRuns(req.Context(), user["id"], logger)
 	if err != nil {
@@ -66,8 +66,8 @@ func UserRuns(res http.ResponseWriter, req *http.Request) {
 }
 
 func ShareRun(res http.ResponseWriter, req *http.Request) {
-	var logger = util.NewLogger()
-	logger.Info("ShareRun API called.")
+	var logger = util.SharedLogger
+	logger.InfoCtx(req, "ShareRun API called.")
 
 	user, err := modules.Auth(req)
 	if err != nil {
@@ -76,7 +76,7 @@ func ShareRun(res http.ResponseWriter, req *http.Request) {
 	}
 
 	// User has id, role, userName, email & fullName.
-	logger.Info(fmt.Sprintf("User: %s", user))
+	logger.InfoCtx(req, fmt.Sprintf("User: %s", user))
 
 	data, err := util.Body(req)
 	if err != nil {

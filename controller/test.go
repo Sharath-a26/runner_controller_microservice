@@ -7,8 +7,8 @@ import (
 
 // Test is a test API for checking the server status.
 func Test(res http.ResponseWriter, req *http.Request) {
-	var logger = util.NewLogger()
-	logger.Info("Test API called.")
+	var logger = util.SharedLogger
+	logger.InfoCtx(req, "Test API called.")
 
 	switch req.Method {
 	case "GET":

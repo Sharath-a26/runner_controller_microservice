@@ -11,8 +11,8 @@ import (
 )
 
 func CreatePSO(res http.ResponseWriter, req *http.Request) {
-	var logger = util.NewLogger()
-	logger.Info("CreatePSO API called.")
+	var logger = util.SharedLogger
+	logger.InfoCtx(req, "CreatePSO API called.")
 
 	// Comment this out to test the API without authentication.
 	user, err := modules.Auth(req)
@@ -22,7 +22,7 @@ func CreatePSO(res http.ResponseWriter, req *http.Request) {
 	}
 
 	// User has id, role, userName, email & fullName.
-	logger.Info(fmt.Sprintf("User: %s", user))
+	logger.InfoCtx(req, fmt.Sprintf("User: %s", user))
 
 	data, err := util.Body(req)
 	if err != nil {
@@ -44,7 +44,7 @@ func CreatePSO(res http.ResponseWriter, req *http.Request) {
 
 	db, err := connection.PoolConn(req.Context())
 	if err != nil {
-		logger.Error(fmt.Sprintf("CreatePSO: %s", err.Error()))
+		logger.ErrorCtx(req, fmt.Sprintf("CreatePSO: %s", err.Error()), err)
 		util.JSONResponse(res, http.StatusInternalServerError, "something went wrong", nil)
 		return
 	}
@@ -59,12 +59,12 @@ func CreatePSO(res http.ResponseWriter, req *http.Request) {
 	err = row.Scan(&runID)
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("CreatePSO.row.Scan: %s", err.Error()))
+		logger.ErrorCtx(req, fmt.Sprintf("CreatePSO.row.Scan: %s", err.Error()), err)
 		util.JSONResponse(res, http.StatusInternalServerError, "something went wrong", nil)
 		return
 	}
 
-	logger.Info(fmt.Sprintf("RunID: %s", runID))
+	logger.InfoCtx(req, fmt.Sprintf("RunID: %s", runID))
 
 	_, err = db.Exec(req.Context(), `
 		INSERT INTO access (runID, userID, mode)
@@ -72,14 +72,14 @@ func CreatePSO(res http.ResponseWriter, req *http.Request) {
 	`, runID, user["id"], "write")
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("CreatePSO.db.Exec: %s", err.Error()))
+		logger.ErrorCtx(req, fmt.Sprintf("CreatePSO.db.Exec: %s", err.Error()), err)
 		util.JSONResponse(res, http.StatusInternalServerError, "something went wrong", nil)
 		return
 	}
 
 	inputParams, err := json.Marshal(data)
 	if err != nil {
-		logger.Error(fmt.Sprintf("CreatePSO.json.Marshal: %s", err.Error()))
+		logger.ErrorCtx(req, fmt.Sprintf("CreatePSO.json.Marshal: %s", err.Error()), err)
 		util.JSONResponse(res, http.StatusInternalServerError, "something went wrong", nil)
 		return
 	}
@@ -87,7 +87,7 @@ func CreatePSO(res http.ResponseWriter, req *http.Request) {
 	// Save code and upload to minIO.
 	os.Mkdir("code", 0755)
 	if err := os.WriteFile(fmt.Sprintf("code/%v.py", runID), []byte(code), 0644); err != nil {
-		logger.Error(fmt.Sprintf("CreatePSO.os.WriteFile: %s", err.Error()))
+		logger.ErrorCtx(req, fmt.Sprintf("CreatePSO.os.WriteFile: %s", err.Error()), err)
 		util.JSONResponse(res, http.StatusInternalServerError, "something went wrong", nil)
 		return
 	}
@@ -99,7 +99,7 @@ func CreatePSO(res http.ResponseWriter, req *http.Request) {
 	// Save input and upload to minIO.
 	os.Mkdir("input", 0755)
 	if err := os.WriteFile(fmt.Sprintf("input/%v.json", runID), inputParams, 0644); err != nil {
-		logger.Error(fmt.Sprintf("CreatePSO.os.WriteFile: %s", err.Error()))
+		logger.ErrorCtx(req, fmt.Sprintf("CreatePSO.os.WriteFile: %s", err.Error()), err)
 		util.JSONResponse(res, http.StatusInternalServerError, "something went wrong", nil)
 		return
 	}
@@ -110,12 +110,12 @@ func CreatePSO(res http.ResponseWriter, req *http.Request) {
 
 	// Remove code and input files from local.
 	if err := os.Remove(fmt.Sprintf("code/%v.py", runID)); err != nil {
-		logger.Error(fmt.Sprintf("CreatePSO.os.Remove: %s", err.Error()))
+		logger.ErrorCtx(req, fmt.Sprintf("CreatePSO.os.Remove: %s", err.Error()), err)
 		util.JSONResponse(res, http.StatusInternalServerError, "something went wrong", nil)
 		return
 	}
 	if err := os.Remove(fmt.Sprintf("input/%v.json", runID)); err != nil {
-		logger.Error(fmt.Sprintf("CreatePSO.os.Remove: %s", err.Error()))
+		logger.ErrorCtx(req, fmt.Sprintf("CreatePSO.os.Remove: %s", err.Error()), err)
 		util.JSONResponse(res, http.StatusInternalServerError, "something went wrong", nil)
 		return
 	}

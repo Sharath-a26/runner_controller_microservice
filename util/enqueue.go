@@ -11,7 +11,7 @@ import (
 )
 
 func EnqueueRunRequest(ctx context.Context, runID string, fileName string, extension string) error {
-	var logger = NewLogger()
+	var logger = SharedLogger
 
 	// Message represents the structure of our message
 	type Message struct {
@@ -30,14 +30,14 @@ func EnqueueRunRequest(ctx context.Context, runID string, fileName string, exten
 	// Connect to RabbitMQ server
 	conn, err := amqp.Dial(rabbitMQURL)
 	if err != nil {
-		logger.Error(fmt.Sprintf("Failed to connect to RabbitMQ: %v", err))
+		logger.Error(fmt.Sprintf("Failed to connect to RabbitMQ: %v", err), err)
 	}
 	defer conn.Close()
 
 	// Create a channel
 	ch, err := conn.Channel()
 	if err != nil {
-		logger.Error(fmt.Sprintf("Failed to open a channel: %v", err))
+		logger.Error(fmt.Sprintf("Failed to open a channel: %v", err), err)
 	}
 	defer ch.Close()
 
@@ -53,7 +53,7 @@ func EnqueueRunRequest(ctx context.Context, runID string, fileName string, exten
 	)
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Failed to declare a queue: %v", err))
+		logger.Error(fmt.Sprintf("Failed to declare a queue: %v", err), err)
 	}
 
 	// Create a new message
@@ -67,7 +67,7 @@ func EnqueueRunRequest(ctx context.Context, runID string, fileName string, exten
 	// Convert message to JSON
 	body, err := json.Marshal(msg)
 	if err != nil {
-		logger.Error(fmt.Sprintf("Error marshaling message: %v", err))
+		logger.Error(fmt.Sprintf("Error marshaling message: %v", err), err)
 	}
 
 	// Publish message
@@ -84,7 +84,7 @@ func EnqueueRunRequest(ctx context.Context, runID string, fileName string, exten
 	)
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Failed to publish message: %v", err))
+		logger.Error(fmt.Sprintf("Failed to publish message: %v", err), err)
 		return err
 	}
 

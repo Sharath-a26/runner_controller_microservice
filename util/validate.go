@@ -11,5 +11,3 @@ func ValidateAlgorithmName(algo string) error {
 	}
 	return fmt.Errorf("invalid algorithm name: %s", algo)
 }
-
-// TODO: Implement remaining validation functions.
