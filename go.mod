@@ -7,7 +7,6 @@ toolchain go1.24.2
 require (
 	github.com/jackc/pgx/v5 v5.7.4
 	github.com/minio/minio-go/v7 v7.0.91
-	github.com/rabbitmq/amqp091-go v1.10.0
 	github.com/redis/go-redis/v9 v9.8.0
 	github.com/rs/cors v1.11.1
 	google.golang.org/grpc v1.72.0

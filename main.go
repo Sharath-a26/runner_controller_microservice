@@ -35,7 +35,7 @@ func main() {
 
 	var logger = util.NewLogger()
 
-	redisClient, err := sse.GetRedisClient(*logger)
+	err := util.InitRedisClient(*logger)
 	if err != nil {
 		logger.Error(fmt.Sprintf("Failed to initialize Redis client: %v. Exiting.", err))
 		os.Exit(1)
@@ -58,7 +58,7 @@ func main() {
 	mux.HandleFunc(routes.SHARE_RUN, controller.ShareRun)
 	mux.HandleFunc(routes.RUN, controller.UserRun)
 
-	sseHandler := sse.GetSSEHandler(*logger, redisClient)
+	sseHandler := sse.GetSSEHandler(*logger)
 	mux.HandleFunc(routes.LOGS, sseHandler)
 	logger.Info(fmt.Sprintf("SSE endpoint registered at %s using Redis Pub/Sub", routes.LOGS))
 
@@ -110,12 +110,7 @@ func main() {
 	}
 
 	// Close Redis Client.
-	logger.Info("Shutting down Redis client...")
-	if redisErr := redisClient.Close(); redisErr != nil {
-		logger.Error(fmt.Sprintf("Redis client shutdown error: %v", redisErr))
-	} else {
-		logger.Info("Redis client shutdown complete.")
-	}
+	util.ShutDownRedisClient(*logger)
 
 	logger.Info("Server exiting.")
 }

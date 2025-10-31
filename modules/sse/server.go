@@ -7,7 +7,6 @@ import (
 	"evolve/util"
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -33,41 +32,17 @@ type redisLogPayload struct {
 	RunID  string `json:"runId"`  // From EOF message.
 }
 
-// GetRedisClient initializes a Redis client.
-func GetRedisClient(logger util.Logger) (*redis.Client, error) {
-	redisURL := os.Getenv("REDIS_URL")
-	if redisURL == "" {
-		redisURL = "redis://localhost:6379/0"
-		logger.Warn(fmt.Sprintf("REDIS_URL not set, using default: %s", redisURL))
-	}
-	opts, err := redis.ParseURL(redisURL)
-	if err != nil {
-		logger.Error(fmt.Sprintf("Failed to parse REDIS_URL '%s': %v", redisURL, err))
-		return nil, err
-	}
-	rdb := redis.NewClient(opts)
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	_, err = rdb.Ping(ctx).Result()
-	if err != nil {
-		logger.Error(fmt.Sprintf("Failed to connect to Redis at %s: %v", opts.Addr, err))
-		return nil, err
-	}
-	logger.Info(fmt.Sprintf("Successfully connected to Redis at %s", opts.Addr))
-	return rdb, nil
-}
-
 // GetSSEHandler returns an HTTP handler
 // for Server-Sent Events (SSE) using Redis Streams.
-func GetSSEHandler(logger util.Logger, redisClient *redis.Client) http.HandlerFunc {
-	if redisClient == nil {
+func GetSSEHandler(logger util.Logger) http.HandlerFunc {
+	if util.RedisClient == nil {
 		logger.Error("GetSSEHandler requires a non-nil Redis client")
 		return func(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Internal Server Error: Redis client not configured", http.StatusInternalServerError)
 		}
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
-		serveSSEWithStream(logger, redisClient, w, r) // Call the new function
+		serveSSEWithStream(logger, w, r) // Call the new function
 	}
 }
 
@@ -93,7 +68,7 @@ func sendSSEData(w http.ResponseWriter, rc *http.ResponseController, payload str
 }
 
 // serveSSEWithStream handles the SSE stream for a given run ID.
-func serveSSEWithStream(logger util.Logger, redisClient *redis.Client, w http.ResponseWriter, r *http.Request) {
+func serveSSEWithStream(logger util.Logger, w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger.Info("[SSE Stream Handler] Entered serveSSEWithStream")
 
@@ -174,7 +149,7 @@ func serveSSEWithStream(logger util.Logger, redisClient *redis.Client, w http.Re
 	for {
 		// Use XRead to get batches of historical data
 		// We don't block here, just read what's available.
-		cmd := redisClient.XRead(ctx, &redis.XReadArgs{
+		cmd := util.RedisClient.XRead(ctx, &redis.XReadArgs{
 			Streams: []string{redisStreamName, lastProcessedID},
 			Count:   streamReadCount,
 		})
@@ -251,7 +226,7 @@ func serveSSEWithStream(logger util.Logger, redisClient *redis.Client, w http.Re
 		}
 
 		// logger.Info(fmt.Sprintf("[SSE Stream Handler] Blocking read on stream '%s' from ID: %s", redisStreamName, lastProcessedID))
-		cmd := redisClient.XRead(ctx, &redis.XReadArgs{
+		cmd := util.RedisClient.XRead(ctx, &redis.XReadArgs{
 			Streams: []string{redisStreamName, lastProcessedID},
 			Count:   streamReadCount,
 			Block:   blockTimeout,

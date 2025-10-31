@@ -9,6 +9,13 @@ Go implementation of the Runner Controller.
 1. GoLang - Install GoLang.
 2. MinIO - Start a MinIO server instance.
 3. CockroachDB - Start a CockroachDB instance.
+4. Redis - Start a Redis instance.
+
+(or) Use Docker Compose to start the services.
+
+```sh
+docker compose up -d
+```
 
 ### Installation
 
@@ -26,11 +33,11 @@ export DATABASE_URL=<cockroachdb_url>
 export MINIO_ENDPOINT=<minio_endpoint>
 export MINIO_ACCESS_KEY_ID=<minio_access_key>
 export MINIO_SECRET_KEY=<minio_secret_key>
-export RABBITMQ_URL=<rabbitmq_url>
 export FRONTEND_URL=<frontend_url>
 export HTTP_PORT=<http_port>
 export AUTH_GRPC_ADDRESS=<auth_grpc_address>
 export REDIS_URL=<redis_url>
+export REDIS_QUEUE_NAME=<redis_queue_name>
 ```
 
 3. Run the following command to start the server.
