@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"os"
 	"time"
-
-	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 func EnqueueRunRequest(ctx context.Context, runID string, fileName string, extension string) error {
@@ -54,6 +52,12 @@ func EnqueueRunRequest(ctx context.Context, runID string, fileName string, exten
 
 	if err != nil {
 		logger.Error(fmt.Sprintf("Failed to declare a queue: %v", err), err)
+  }
+	// Declare a queue
+	queueName := os.Getenv("REDIS_QUEUE_NAME")
+	if queueName == "" {
+		queueName = "task_queue"
+		logger.Warn(fmt.Sprintf("REDIS_QUEUE_NAME not set, using default: %s", queueName))
 	}
 
 	// Create a new message
@@ -68,20 +72,11 @@ func EnqueueRunRequest(ctx context.Context, runID string, fileName string, exten
 	body, err := json.Marshal(msg)
 	if err != nil {
 		logger.Error(fmt.Sprintf("Error marshaling message: %v", err), err)
+    return err
 	}
 
-	// Publish message
-	err = ch.PublishWithContext(
-		ctx,
-		"",     // exchange
-		q.Name, // routing key
-		false,  // mandatory
-		false,  // immediate
-		amqp.Publishing{
-			DeliveryMode: amqp.Persistent,
-			Body:         body,
-		},
-	)
+	// Push message to Redis List (LPUSH = enqueue at head)
+	err = RedisClient.LPush(ctx, queueName, string(body)).Err();
 
 	if err != nil {
 		logger.Error(fmt.Sprintf("Failed to publish message: %v", err), err)

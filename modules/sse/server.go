@@ -7,7 +7,6 @@ import (
 	"evolve/util"
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -60,15 +59,16 @@ func GetRedisClient(logger util.LoggerService) (*redis.Client, error) {
 
 // GetSSEHandler returns an HTTP handler
 // for Server-Sent Events (SSE) using Redis Streams.
+
 func GetSSEHandler(logger util.LoggerService, redisClient *redis.Client) http.HandlerFunc {
-	if redisClient == nil {
-		logger.Error("GetSSEHandler requires a non-nil Redis client", nil)
+	if util.RedisClient == nil {
+		logger.Error("GetSSEHandler requires a non-nil Redis client")
 		return func(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Internal Server Error: Redis client not configured", http.StatusInternalServerError)
 		}
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
-		serveSSEWithStream(logger, redisClient, w, r) // Call the new function
+		serveSSEWithStream(logger, w, r) // Call the new function
 	}
 }
 
@@ -175,7 +175,7 @@ func serveSSEWithStream(logger util.LoggerService, redisClient *redis.Client, w 
 	for {
 		// Use XRead to get batches of historical data
 		// We don't block here, just read what's available.
-		cmd := redisClient.XRead(ctx, &redis.XReadArgs{
+		cmd := util.RedisClient.XRead(ctx, &redis.XReadArgs{
 			Streams: []string{redisStreamName, lastProcessedID},
 			Count:   streamReadCount,
 		})
@@ -252,7 +252,7 @@ func serveSSEWithStream(logger util.LoggerService, redisClient *redis.Client, w 
 		}
 
 		// logger.Info(fmt.Sprintf("[SSE Stream Handler] Blocking read on stream '%s' from ID: %s", redisStreamName, lastProcessedID))
-		cmd := redisClient.XRead(ctx, &redis.XReadArgs{
+		cmd := util.RedisClient.XRead(ctx, &redis.XReadArgs{
 			Streams: []string{redisStreamName, lastProcessedID},
 			Count:   streamReadCount,
 			Block:   blockTimeout,
